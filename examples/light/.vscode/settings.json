@@ -1,0 +1,19 @@
+{
+  "idf.openOcdConfigs": [
+    "board/esp32c6-builtin.cfg"
+  ],
+  "idf.customExtraVars": {
+    "OPENOCD_SCRIPTS": "/Users/peter/esp/v5.2.2/esp-idf/tools/openocd-esp32/v0.12.0-esp32-20240318/openocd-esp32/share/openocd/scripts",
+    "ESP_ROM_ELF_DIR": "/Users/peter/esp/v5.2.2/esp-idf/tools/esp-rom-elfs/20230320/",
+    "IDF_TARGET": "esp32c6"
+  },
+  "clangd.path": "/Users/peter/esp/v5.5.1/esp-idf/tools/tools/esp-clang/esp-19.1.2_20250312/esp-clang/bin/clangd",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=/Users/peter/esp/v5.5.1/esp-idf/tools/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/bin/riscv32-esp-elf-gcc",
+    "--compile-commands-dir=/Users/peter/esp/v5.5.1/esp-idf/tools/esp-matter/examples/light/build"
+  ],
+  "idf.port": "/dev/tty.usbserial-110",
+  "idf.currentSetup": "/Users/peter/esp/v5.5.1/esp-idf",
+  "idf.flashType": "UART"
+}

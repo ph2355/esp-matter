@@ -436,7 +436,7 @@ static esp_err_t controller_invoke_command_handler(int argc, char **argv)
                                                            chip::MakeOptional(timed_invoke_timeout_ms));
         }
     }
-
+    ChipLogError(AppServer, "hello");
     return controller::send_invoke_cluster_command(node_id, endpoint_id, cluster_id, command_id,
                                                    argc > 4 ? argv[4] : NULL);
 }

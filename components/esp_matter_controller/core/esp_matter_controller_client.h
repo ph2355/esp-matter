@@ -49,7 +49,7 @@
 namespace esp_matter {
 namespace controller {
 
-#ifndef CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER
+// #ifndef CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER
 typedef void (*remove_fabric_callback)(chip::NodeId remoteNodeId, CHIP_ERROR status);
 
 class auto_fabric_remover : private chip::Controller::CurrentFabricRemover {
@@ -240,7 +240,7 @@ private:
     MatterDeviceController m_device_controller;
 #endif
 };
-#endif // CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER
+// #endif // CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER
 
 #if CHIP_DEVICE_CONFIG_ENABLE_COMMISSIONER_DISCOVERY
 class ESPCommissionerCallback : public CommissionerCallback {
@@ -254,7 +254,7 @@ class ESPCommissionerCallback : public CommissionerCallback {
         do {
             chip::Crypto::DRBG_get_bytes(reinterpret_cast<uint8_t *>(&gRemoteId), sizeof(gRemoteId));
         } while (!chip::IsOperationalNodeId(gRemoteId));
-        matter_controller_client::get_instance().get_commissioner()->PairDevice(gRemoteId, params);
+        esp_matter::controller::matter_controller_client::get_instance().get_commissioner()->PairDevice(gRemoteId, params);
     }
 };
 #endif

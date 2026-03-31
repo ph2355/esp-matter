@@ -38,6 +38,9 @@ using attribute_data_tag = chip::app::AttributeDataIB::Tag;
 static const char *TAG = "write_command";
 static constexpr size_t k_encoded_buf_size = chip::kMaxAppMessageLen;
 
+#include "globals.h"
+extern bool commissioner_enabled;
+
 namespace esp_matter {
 namespace controller {
 
@@ -62,12 +65,17 @@ void write_command::on_device_connection_failure_fcn(void *context, const Scoped
 
 esp_err_t write_command::send_command()
 {
-#ifdef CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER
+// #ifdef CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER
+    if (!commissioner_enabled)
+    {
     chip::Server &server = chip::Server::GetInstance();
     server.GetCASESessionManager()->FindOrEstablishSession(ScopedNodeId(m_node_id, get_fabric_index()),
                                                            &on_device_connected_cb, &on_device_connection_failure_cb);
     return ESP_OK;
-#else
+    }
+    else
+    {
+// #else
     auto &controller_instance = esp_matter::controller::matter_controller_client::get_instance();
 #ifdef CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
     if (CHIP_NO_ERROR ==
@@ -81,8 +89,9 @@ esp_err_t write_command::send_command()
                                                                  &on_device_connection_failure_cb)) {
         return ESP_OK;
     }
-#endif // CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
-#endif // CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER
+    #endif // CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
+    // #endif // CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER
+}
     chip::Platform::Delete(this);
     return ESP_FAIL;
 }

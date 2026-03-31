@@ -36,6 +36,8 @@
 #include <lib/support/TestGroupData.h>
 #include <stdint.h>
 
+#include "esp_matter_data_model_provider.h"
+
 #ifdef CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
 #include <esp_matter_attestation_trust_store.h>
 #endif
@@ -77,6 +79,7 @@ esp_err_t matter_controller_client::init(NodeId node_id, FabricId fabric_id, uin
     factory_init_params.enableServerInteractions = m_operational_advertising;
     factory_init_params.sessionKeystore = &m_session_key_store;
     factory_init_params.dataModelProvider = &data_model::provider::get_instance();
+    // factory_init_params.dataModelProvider = &esp_matter::data_model::provider::get_instance();
     m_controller_node_id = node_id;
     m_controller_fabric_id = fabric_id;
 
@@ -85,14 +88,18 @@ esp_err_t matter_controller_client::init(NodeId node_id, FabricId fabric_id, uin
     m_group_data_provider.SetListener(&m_group_data_provider_listener);
     ESP_RETURN_ON_FALSE(m_group_data_provider.Init() == CHIP_NO_ERROR, ESP_FAIL, TAG,
                         "Failed to initialize group data provider");
+
     factory_init_params.groupDataProvider =
         reinterpret_cast<chip::Credentials::GroupDataProvider *>(&m_group_data_provider);
     chip::Credentials::SetGroupDataProvider(factory_init_params.groupDataProvider);
+
     ESP_RETURN_ON_FALSE(chip::Controller::DeviceControllerFactory::GetInstance().Init(factory_init_params) ==
                             CHIP_NO_ERROR,
                         ESP_FAIL, TAG, "Failed to initialize DeviceControllerFactory");
+    
     auto *system_state = chip::Controller::DeviceControllerFactory::GetInstance().GetSystemState();
     m_group_data_provider_listener.Init(system_state);
+    
     auto engine = chip::app::InteractionModelEngine::GetInstance();
     ESP_RETURN_ON_FALSE(engine, ESP_ERR_INVALID_STATE, TAG, "No interaction model engine");
     ESP_RETURN_ON_FALSE(m_icd_check_in_delegate.Init(&m_icd_client_storage, engine) == CHIP_NO_ERROR, ESP_FAIL, TAG,

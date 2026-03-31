@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "name": "Mac",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "~/esp/v5.5.1/esp-idf/tools/esp-matter/**"
+            ],
+            "defines": [],
+            "compilerPath": "/Users/peter/.swiftly/bin/clang"
+        }
+    ],
+    "version": 4
+}

@@ -8,14 +8,14 @@ menu "ESP Matter Controller"
 
     config ESP_MATTER_CONTROLLER_VENDOR_ID
         int "Matter Controller Vendor ID"
-        depends on ESP_MATTER_CONTROLLER_ENABLE && !ESP_MATTER_ENABLE_MATTER_SERVER
+        depends on ESP_MATTER_CONTROLLER_ENABLE #&& !ESP_MATTER_ENABLE_MATTER_SERVER
         default 4891
         help
             Vendor ID for the controller
 
     config ESP_MATTER_COMMISSIONER_ENABLE
         bool "Enable matter commissioner"
-        depends on ESP_MATTER_CONTROLLER_ENABLE && !ESP_MATTER_ENABLE_MATTER_SERVER
+        depends on ESP_MATTER_CONTROLLER_ENABLE #&& !ESP_MATTER_ENABLE_MATTER_SERVER
         default y
         help
             Enable the matter commissioner in the ESP Matter controller.
@@ -51,7 +51,7 @@ menu "ESP Matter Controller"
 
     choice ESP_MATTER_COMMISSIONER_OPERATIONAL_CREDS_ISSUER
         prompt "Operational Credentials Issuer"
-        depends on !ESP_MATTER_ENABLE_MATTER_SERVER
+        # depends on !ESP_MATTER_ENABLE_MATTER_SERVER
         default TEST_OPERATIONAL_CREDS_ISSUER
         help
             This option determines how the commissioner generates the NOC chains for the end-devices and itself.

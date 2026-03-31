@@ -1,0 +1,17 @@
+{
+  "idf.port": "/dev/tty.usbserial-130",
+  "idf.openOcdConfigs": [
+    "board/esp32s3-builtin.cfg"
+  ],
+  "idf.customExtraVars": {
+    "OPENOCD_SCRIPTS": "/Users/peter/esp/v5.2.2/esp-idf/tools/openocd-esp32/v0.12.0-esp32-20240318/openocd-esp32/share/openocd/scripts",
+    "ESP_ROM_ELF_DIR": "/Users/peter/esp/v5.2.2/esp-idf/tools/esp-rom-elfs/20230320/",
+    "IDF_TARGET": "esp32s3"
+  },
+  "clangd.path": "/Users/peter/esp/v5.5.1/esp-idf/tools/tools/esp-clang/esp-19.1.2_20250312/esp-clang/bin/clangd",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=/Users/peter/esp/v5.5.1/esp-idf/tools/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcc",
+    "--compile-commands-dir=/Users/peter/esp/v5.5.1/esp-idf/tools/esp-matter/examples/light_switch/build"
+  ]
+}

@@ -206,6 +206,11 @@ extern "C" void app_main()
     light_endpoint_id = endpoint::get_id(endpoint);
     ESP_LOGI(TAG, "Light created with endpoint_id %d", light_endpoint_id);
 
+    /* Add binding cluster to the endpoint */
+    cluster_t *binding_cluster = cluster::binding::create(endpoint, nullptr, CLUSTER_FLAG_SERVER);
+    ABORT_APP_ON_FAILURE(binding_cluster != nullptr, ESP_LOGE(TAG, "Failed to create binding cluster"));
+    ESP_LOGI(TAG, "Binding cluster added to endpoint %d", light_endpoint_id);
+    
     /* Mark deferred persistence for some attributes that might be changed rapidly */
     attribute_t *current_level_attribute = attribute::get(light_endpoint_id, LevelControl::Id, LevelControl::Attributes::CurrentLevel::Id);
     attribute::set_deferred_persistence(current_level_attribute);

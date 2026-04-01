@@ -33,6 +33,10 @@ CONFIG_NUM_UDP_ENDPOINTS=16
 CONFIG_ENABLE_CHIP_CONTROLLER_BUILD=y
 CONFIG_ESP_MATTER_CONTROLLER_ENABLE=y
 CONFIG_ESP_MATTER_COMMISSIONER_ENABLE=y
+# Enable BLE controller and combined commissioner+commissionee mode.
+# CHIPDevicePlatformConfig.h maps CHIP_DEVICE_CONFIG_ENABLE_BOTH_COMMISSIONER_AND_COMMISSIONEE
+# to this flag, which shares the server's FabricTable and GroupDataProvider with the factory.
+CONFIG_ENABLE_ESP32_BLE_CONTROLLER=y
 
 # Enable HKDF in mbedtls
 CONFIG_MBEDTLS_HKDF_C=y

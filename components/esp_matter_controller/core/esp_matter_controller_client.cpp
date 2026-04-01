@@ -20,6 +20,10 @@
 #include <esp_matter_controller_credentials_issuer.h>
 #include <esp_matter_controller_pairing_command.h>
 
+#if CHIP_DEVICE_CONFIG_ENABLE_BOTH_COMMISSIONER_AND_COMMISSIONEE
+#include <app/server/Server.h>
+#endif
+
 #include <app/InteractionModelEngine.h>
 #include <controller/CHIPDeviceControllerFactory.h>
 #include <controller/OperationalCredentialsDelegate.h>
@@ -66,32 +70,59 @@ ESPCommissionerCallback commissioner_callback;
 esp_err_t matter_controller_client::init(NodeId node_id, FabricId fabric_id, uint16_t listen_port)
 {
     chip::Controller::FactoryInitParams factory_init_params;
+
+#if CHIP_DEVICE_CONFIG_ENABLE_BOTH_COMMISSIONER_AND_COMMISSIONEE
+    // Combined commissioner+commissionee mode:
+    // - Share the server's fabric table so the server's CASEServer can authenticate switches
+    //   commissioned onto the commissioner's fabric (FindLocalNodeFromDestinationId iterates it).
+    // - Use the server's GroupDataProvider as the factory's provider. setup_commissioner() will
+    //   write the commissioner's IPK into it, making it visible to the server's CASEServer
+    //   (CASEServer::ListenForSessionEstablishment was called with mGroupsProvider = server's provider).
+    // - opCertStore and operationalKeystore are NOT provided: FabricTable::Init() is skipped when
+    //   fabricTable is supplied externally (the server's table is already fully initialized).
+    // - Do NOT call SetGroupDataProvider: Server::Init() already set the global to mGroupsProvider.
+    factory_init_params.fabricTable = &chip::Server::GetInstance().GetFabricTable();
+    factory_init_params.groupDataProvider = chip::Server::GetInstance().GetGroupDataProvider();
+
+    ESP_RETURN_ON_FALSE(m_icd_client_storage.Init(&m_default_storage, &m_session_key_store) == CHIP_NO_ERROR, ESP_FAIL,
+                        TAG, "Failed to initialize ICD client store");
+#else
     ESP_RETURN_ON_FALSE(m_operational_keystore.Init(&m_default_storage) == CHIP_NO_ERROR, ESP_FAIL, TAG,
                         "Failed to initialize operational keystore");
     ESP_RETURN_ON_FALSE(m_operational_cert_store.Init(&m_default_storage) == CHIP_NO_ERROR, ESP_FAIL, TAG,
                         "Failed to initialize operational cert store");
     ESP_RETURN_ON_FALSE(m_icd_client_storage.Init(&m_default_storage, &m_session_key_store) == CHIP_NO_ERROR, ESP_FAIL,
                         TAG, "Failed to initialize ICD client store");
-    factory_init_params.listenPort = listen_port;
-    factory_init_params.fabricIndependentStorage = &m_default_storage;
     factory_init_params.operationalKeystore = &m_operational_keystore;
     factory_init_params.opCertStore = &m_operational_cert_store;
-    factory_init_params.enableServerInteractions = m_operational_advertising;
-    factory_init_params.sessionKeystore = &m_session_key_store;
-    factory_init_params.dataModelProvider = &data_model::provider::get_instance();
-    // factory_init_params.dataModelProvider = &esp_matter::data_model::provider::get_instance();
-    m_controller_node_id = node_id;
-    m_controller_fabric_id = fabric_id;
 
     m_group_data_provider.SetStorageDelegate(&m_default_storage);
-    m_group_data_provider.SetSessionKeystore(factory_init_params.sessionKeystore);
+    m_group_data_provider.SetSessionKeystore(&m_session_key_store);
     m_group_data_provider.SetListener(&m_group_data_provider_listener);
     ESP_RETURN_ON_FALSE(m_group_data_provider.Init() == CHIP_NO_ERROR, ESP_FAIL, TAG,
                         "Failed to initialize group data provider");
-
     factory_init_params.groupDataProvider =
         reinterpret_cast<chip::Credentials::GroupDataProvider *>(&m_group_data_provider);
     chip::Credentials::SetGroupDataProvider(factory_init_params.groupDataProvider);
+#endif // CHIP_DEVICE_CONFIG_ENABLE_BOTH_COMMISSIONER_AND_COMMISSIONEE
+
+    factory_init_params.listenPort = listen_port;
+    factory_init_params.fabricIndependentStorage = &m_default_storage;
+    factory_init_params.sessionKeystore = &m_session_key_store;
+#if CHIP_DEVICE_CONFIG_ENABLE_BOTH_COMMISSIONER_AND_COMMISSIONEE
+    // In combined mode, switches connect to port 5540 (server) so the factory does not need its
+    // own CASEServer. Disable server interactions to skip creating a second CASEServer on port 5580.
+    // InitSystemState still calls InteractionModelEngine::SetDataModelProvider unconditionally, so
+    // pass the provider that is already set on the singleton (the server's) to make it a no-op and
+    // avoid hiding the server's light endpoints from external commissioners (Apple Home etc.).
+    factory_init_params.enableServerInteractions = false;
+    factory_init_params.dataModelProvider = chip::app::InteractionModelEngine::GetInstance()->GetDataModelProvider();
+#else
+    factory_init_params.enableServerInteractions = m_operational_advertising;
+    factory_init_params.dataModelProvider = &data_model::provider::get_instance();
+#endif
+    m_controller_node_id = node_id;
+    m_controller_fabric_id = fabric_id;
 
     ESP_RETURN_ON_FALSE(chip::Controller::DeviceControllerFactory::GetInstance().Init(factory_init_params) ==
                             CHIP_NO_ERROR,
@@ -181,15 +212,19 @@ esp_err_t matter_controller_client::setup_commissioner()
     chip::MutableByteSpan compressed_fabric_id_span(compressed_fabric_id);
     ESP_RETURN_ON_FALSE(m_device_commissioner.GetCompressedFabricIdBytes(compressed_fabric_id_span) == CHIP_NO_ERROR,
                         ESP_FAIL, TAG, "Failed to get compressed_fabric_id");
+    // Write the IPK for the commissioner's fabric into whichever GroupDataProvider the
+    // factory was initialized with. In combined mode this is the server's GroupDataProvider,
+    // making the IPK visible to the server's CASEServer when a switch initiates CASE on
+    // port 5540. In standalone mode this is m_group_data_provider as before.
     chip::Credentials::GroupDataProvider *group_data_provider =
-        reinterpret_cast<chip::Credentials::GroupDataProvider *>(&m_group_data_provider);
-    ESP_RETURN_ON_FALSE(chip::GroupTesting::InitData(group_data_provider, fabric_index, compressed_fabric_id_span) ==
-                            CHIP_NO_ERROR,
-                        ESP_FAIL, TAG, "Failed to initialize group data");
+        chip::Controller::DeviceControllerFactory::GetInstance().GetSystemState()->GetGroupDataProvider();
     chip::ByteSpan default_ipk = chip::GroupTesting::DefaultIpkValue::GetDefaultIpk();
-    ESP_RETURN_ON_FALSE(chip::Credentials::SetSingleIpkEpochKey(group_data_provider, fabric_index, default_ipk,
-                                                                compressed_fabric_id_span) == CHIP_NO_ERROR,
-                        ESP_FAIL, TAG, "Failed to set ipk for commissioner fabric");
+    {
+        CHIP_ERROR ipk_err = chip::Credentials::SetSingleIpkEpochKey(group_data_provider, fabric_index, default_ipk,
+                                                                     compressed_fabric_id_span);
+        ESP_RETURN_ON_FALSE(ipk_err == CHIP_NO_ERROR, ESP_FAIL, TAG,
+                            "Failed to set ipk for commissioner fabric: %" CHIP_ERROR_FORMAT, ipk_err.Format());
+    }
 
 #if CHIP_DEVICE_CONFIG_ENABLE_COMMISSIONER_DISCOVERY
     get_discovery_controller()->SetUserDirectedCommissioningServer(

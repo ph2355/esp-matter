@@ -13,5 +13,6 @@
     "--background-index",
     "--query-driver=/Users/peter/esp/v5.5.1/esp-idf/tools/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcc",
     "--compile-commands-dir=/Users/peter/esp/v5.5.1/esp-idf/tools/esp-matter/examples/light_switch/build"
-  ]
+  ],
+  "idf.currentSetup": "/Users/peter/esp/v5.5.1/esp-idf"
 }

@@ -10,6 +10,8 @@
 #include <esp_log.h>
 #include <nvs_flash.h>
 #include <led_strip.h>
+#include <esp_console.h>
+#include <app/util/attribute-storage.h>
 
 #define LED_GPIO 38
 
@@ -30,6 +32,7 @@ static led_strip_handle_t s_led_strip = nullptr;
 #endif // CONFIG_OPENTHREAD_BORDER_ROUTER
 #include <common_macros.h>
 
+#include <app/server/CommissioningWindowManager.h>
 #include <app/server/Server.h>
 #include <credentials/FabricTable.h>
 #include <access/AccessControl.h>
@@ -159,9 +162,6 @@ static void app_event_cb(const ChipDeviceEvent *event, intptr_t arg)
     }
 }
 
-#include <esp_console.h>
-#include <app/util/attribute-storage.h>
-
 static void commissioner_disable()
 {
     commissioner_enabled = false;
@@ -259,6 +259,23 @@ static int commissioner_setup_command(int argc, char **argv)
     return 0;
 }
 
+static int open_commissioning_window_command(int argc, char **argv)
+{
+    int timeout_s = 300;
+    if (argc >= 2) {
+        timeout_s = atoi(argv[1]);
+    }
+    chip::CommissioningWindowManager &mgr = chip::Server::GetInstance().GetCommissioningWindowManager();
+    CHIP_ERROR err = mgr.OpenBasicCommissioningWindow(chip::System::Clock::Seconds32(timeout_s),
+                                                     chip::CommissioningWindowAdvertisement::kDnssdOnly);
+    if (err != CHIP_NO_ERROR) {
+        ESP_LOGE(TAG, "Failed to open commissioning window: %" CHIP_ERROR_FORMAT, err.Format());
+        return 1;
+    }
+    ESP_LOGI(TAG, "Commissioning window opened for %d seconds", timeout_s);
+    return 0;
+}
+
 static int commissioner_enable_command(int argc, char **argv)
 {
     if (argc < 2) {
@@ -323,26 +340,32 @@ extern "C" void app_main()
     set_openthread_platform_config(&config);
 #endif // CONFIG_OPENTHREAD_BORDER_ROUTER
 
-    // if (commissioner_enabled)
-    // {
-        esp_console_cmd_t commissioner_cmd = {
-            .command = "commissioner_setup",
-            .help = "Setup the Matter commissioner",
-            .hint = NULL,
-            .func = &commissioner_setup_command,
-            .argtable = NULL
-        };
-        esp_console_cmd_register(&commissioner_cmd);
-    // }
+    esp_console_cmd_t commissioner_cmd = {
+        .command = "commissioner_setup",
+        .help = "Setup the Matter commissioner",
+        .hint = NULL,
+        .func = &commissioner_setup_command,
+        .argtable = NULL
+    };
+    esp_console_cmd_register(&commissioner_cmd);
 
     esp_console_cmd_t commissioner_cmd2 = {
         .command = "commissioner_enable",
-        .help = "Enable the Matter commissioner",
+        .help = "Enable/disable commissioner mode: commissioner_enable <0|1>",
         .hint = NULL,
         .func = &commissioner_enable_command,
         .argtable = NULL
     };
     esp_console_cmd_register(&commissioner_cmd2);
+
+    esp_console_cmd_t open_window_cmd = {
+        .command = "open_commissioning_window",
+        .help = "Open commissioning window for pairing: open_commissioning_window [timeout_seconds]",
+        .hint = NULL,
+        .func = &open_commissioning_window_command,
+        .argtable = NULL
+    };
+    esp_console_cmd_register(&open_window_cmd);
 
     /* Initialize addressable LED (WS2812 on GPIO 38 via RMT) */
     led_strip_config_t strip_config = {};
@@ -380,6 +403,8 @@ extern "C" void app_main()
 //     esp_matter::controller::matter_controller_client::get_instance().setup_commissioner();
 //     esp_matter::lock::chip_stack_unlock();
 // #endif // CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
+
+    commissioner_setup_command(0, NULL);
 
     if (node) {
         endpoint_t *root = endpoint::get(node, 0);

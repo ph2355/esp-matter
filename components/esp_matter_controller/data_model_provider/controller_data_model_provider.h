@@ -89,7 +89,6 @@ public:
         }
         return mOtaProviderServer.ReadAttribute(request, encoder);
 #else
-        ChipLogError(Support, " interatction model invalid action - read");
         return chip::Protocols::InteractionModel::Status::InvalidAction;
 #endif
     }
@@ -105,7 +104,6 @@ public:
         }
         return chip::Protocols::InteractionModel::Status::UnsupportedWrite;
 #else
-        ChipLogError(Support, " interatction model invalid action - write");
         return chip::Protocols::InteractionModel::Status::InvalidAction;
 #endif
     }
@@ -125,7 +123,6 @@ public:
         }
         return mOtaProviderServer.InvokeCommand(request, input_arguments, handler);
 #else
-        ChipLogError(Support, " interatction model invalid action - invoke");
         return chip::Protocols::InteractionModel::Status::InvalidAction;
 #endif
     }
@@ -178,7 +175,6 @@ public:
         entry.flags.ClearAll();
         return builder.Append(entry);
 #else
-        ChipLogError(Support, " interatction model invalid action - server clusters");
         return CHIP_IM_GLOBAL_STATUS(UnsupportedEndpoint);
 #endif
     }

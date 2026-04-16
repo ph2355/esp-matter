@@ -227,14 +227,11 @@ esp_err_t cluster_command::dispatch_group_command(void *context)
 
 esp_err_t cluster_command::send_command()
 {
-    ChipLogError(AppServer, "hello3");
-
     if (is_group_command()) {
         return dispatch_group_command(reinterpret_cast<void *>(this));
     }
     if (!commissioner_enabled)
     {
-    ChipLogError(AppServer, "hello4");
 // #ifdef CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER
         chip::Server &server = chip::Server::GetInstance();
         server.GetCASESessionManager()->FindOrEstablishSession(ScopedNodeId(m_destination_id, get_fabric_index()),
@@ -244,8 +241,6 @@ esp_err_t cluster_command::send_command()
 // #else
     else 
     {
-
-    ChipLogError(AppServer, "hello5");
     auto &controller_instance = esp_matter::controller::matter_controller_client::get_instance();
 #ifdef CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
     if (CHIP_NO_ERROR ==
@@ -255,7 +250,6 @@ esp_err_t cluster_command::send_command()
     }
 #else
     if (CHIP_NO_ERROR ==
-        ChipLogError(AppServer, "hello6");
         controller_instance.get_controller()->GetConnectedDevice(m_destination_id, &on_device_connected_cb,
                                                                  &on_device_connection_failure_cb)) {
         return ESP_OK;
@@ -278,7 +272,6 @@ esp_err_t send_invoke_cluster_command(uint64_t destination_id, uint16_t endpoint
         return ESP_ERR_NO_MEM;
     }
 
-    ChipLogError(AppServer, "hello2");
     return cmd->send_command();
 }
 

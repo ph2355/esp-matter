@@ -40,14 +40,11 @@ static led_strip_handle_t s_led_strip = nullptr;
 #include <esp_matter_controller_pairing_command.h>
 #include <esp_matter_controller_write_command.h>
 
-#include "globals.h"
-
 using namespace esp_matter;
 using namespace esp_matter::attribute;
 using namespace esp_matter::endpoint;
 using namespace chip::app::Clusters;
 
-bool commissioner_enabled = false;
 
 static const char *TAG = "app_main";
 uint16_t switch_endpoint_id = 0;
@@ -156,21 +153,12 @@ static void app_event_cb(const ChipDeviceEvent *event, intptr_t arg)
     case chip::DeviceLayer::DeviceEventType::kBLEDeinitialized:
         ESP_LOGI(TAG, "BLE deinitialized and memory reclaimed");
         // MEMORY_PROFILER_DUMP_HEAP_STAT("BLE deinitialized");
-        break;       
+        break;
     default:
         break;
     }
 }
 
-static void commissioner_disable()
-{
-    commissioner_enabled = false;
-}
-
-static void commissioner_enable()
-{
-    commissioner_enabled = true;
-}
 
 #ifdef CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
 static void on_switch_commissioned(chip::ScopedNodeId peer_id)
@@ -213,9 +201,8 @@ static void on_switch_commissioned(chip::ScopedNodeId peer_id)
 }
 #endif // CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
 
-static int commissioner_setup_command(int argc, char **argv)
+static int commissioner_setup()
 {
-    commissioner_enabled = true;
     ESP_LOGI(TAG, "Setting up commissioner...");
     esp_matter::lock::chip_stack_lock(portMAX_DELAY);
     esp_matter::controller::matter_controller_client::get_instance().init(112233, 1, 5580);
@@ -276,27 +263,6 @@ static int open_commissioning_window_command(int argc, char **argv)
     return 0;
 }
 
-static int commissioner_enable_command(int argc, char **argv)
-{
-    if (argc < 2) {
-        ESP_LOGI(TAG, "Usage: commissioner_enable <0|1>");
-        return 1;
-    }
-    int enable = atoi(argv[1]);
-    commissioner_enabled = (enable != 0);
-
-    if (commissioner_enabled)
-    {
-        commissioner_enable();
-    }
-    else 
-    {
-        commissioner_disable();
-    }
-
-    return 0;
-}
-
 extern "C" void app_main()
 {
     esp_err_t err = ESP_OK;
@@ -340,24 +306,6 @@ extern "C" void app_main()
     set_openthread_platform_config(&config);
 #endif // CONFIG_OPENTHREAD_BORDER_ROUTER
 
-    esp_console_cmd_t commissioner_cmd = {
-        .command = "commissioner_setup",
-        .help = "Setup the Matter commissioner",
-        .hint = NULL,
-        .func = &commissioner_setup_command,
-        .argtable = NULL
-    };
-    esp_console_cmd_register(&commissioner_cmd);
-
-    esp_console_cmd_t commissioner_cmd2 = {
-        .command = "commissioner_enable",
-        .help = "Enable/disable commissioner mode: commissioner_enable <0|1>",
-        .hint = NULL,
-        .func = &commissioner_enable_command,
-        .argtable = NULL
-    };
-    esp_console_cmd_register(&commissioner_cmd2);
-
     esp_console_cmd_t open_window_cmd = {
         .command = "open_commissioning_window",
         .help = "Open commissioning window for pairing: open_commissioning_window [timeout_seconds]",
@@ -397,23 +345,5 @@ extern "C" void app_main()
     err = esp_matter::start(app_event_cb);
     ABORT_APP_ON_FAILURE(err == ESP_OK, ESP_LOGE(TAG, "Failed to start Matter, err:%d", err));
 
-// #if CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
-//     esp_matter::lock::chip_stack_lock(portMAX_DELAY);
-//     esp_matter::controller::matter_controller_client::get_instance().init(112233, 1, 5580);
-//     esp_matter::controller::matter_controller_client::get_instance().setup_commissioner();
-//     esp_matter::lock::chip_stack_unlock();
-// #endif // CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
-
-    commissioner_setup_command(0, NULL);
-
-    if (node) {
-        endpoint_t *root = endpoint::get(node, 0);
-        if (root) {
-            cluster_t *c = cluster::get_first(root);
-            while (c) {
-                ESP_LOGI(TAG, "Root endpoint cluster: 0x%04X", cluster::get_id(c));
-                c = cluster::get_next(c);
-            }
-        }
-    }
+    commissioner_setup();
 }

@@ -172,7 +172,7 @@ esp_err_t add_keyset(uint16_t keyset_id, uint8_t key_policy, uint64_t validity_t
     uint8_t compressed_fabric_id[sizeof(uint64_t)];
     chip::MutableByteSpan compressed_fabric_id_span(compressed_fabric_id);
     if (CHIP_NO_ERROR !=
-#ifdef CONFIG_ESP_MATTER_COMMISSIONER_ENABLE // This is ok
+#ifdef CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
         controller_instance.get_commissioner()->GetCompressedFabricIdBytes(compressed_fabric_id_span)) {
 #else
         controller_instance.get_controller()->GetCompressedFabricIdBytes(compressed_fabric_id_span)) {

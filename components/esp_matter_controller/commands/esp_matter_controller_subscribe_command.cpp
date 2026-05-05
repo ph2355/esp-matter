@@ -30,9 +30,6 @@ using chip::app::ReadPrepareParams;
 
 static const char *TAG = "read_command";
 
-#include "globals.h"
-extern bool commissioner_enabled;
-
 static const uint8_t k_max_resubscribe_retries = 2;
 
 namespace esp_matter {
@@ -66,17 +63,12 @@ void subscribe_command::on_device_connection_failure_fcn(void *context, const Sc
 
 esp_err_t subscribe_command::send_command()
 {
-// #ifdef CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER
-    if (!commissioner_enabled)
-    {
-        chip::Server *server = &(chip::Server::GetInstance());
-        server->GetCASESessionManager()->FindOrEstablishSession(ScopedNodeId(m_node_id, get_fabric_index()),
-        &on_device_connected_cb, &on_device_connection_failure_cb);
-        return ESP_OK;
-    }
-    else
-    {
-// #else
+#if defined(CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER) && !defined(CONFIG_ESP_MATTER_COMMISSIONER_ENABLE)
+    chip::Server *server = &(chip::Server::GetInstance());
+    server->GetCASESessionManager()->FindOrEstablishSession(ScopedNodeId(m_node_id, get_fabric_index()),
+                                                            &on_device_connected_cb, &on_device_connection_failure_cb);
+    return ESP_OK;
+#else
     auto &controller_instance = esp_matter::controller::matter_controller_client::get_instance();
 #ifdef CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
     if (CHIP_NO_ERROR ==
@@ -91,8 +83,7 @@ esp_err_t subscribe_command::send_command()
         return ESP_OK;
     }
 #endif // CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
-// #endif // CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER
-}
+#endif // CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER && !CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
     chip::Platform::Delete(this);
     return ESP_FAIL;
 }
@@ -292,18 +283,11 @@ esp_err_t send_subscribe_event_command(uint64_t node_id, uint16_t endpoint_id, u
 
 esp_err_t send_shutdown_subscription(uint64_t node_id, uint32_t subscription_id)
 {
-    chip::FabricIndex fabric_index;
-// #ifdef CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER
-    if (!commissioner_enabled)
-    {
-        fabric_index = get_fabric_index();
-    }
-// #else
-    else 
-    {
-        fabric_index = matter_controller_client::get_instance().get_fabric_index();
-    }
-// #endif
+#if defined(CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER) && !defined(CONFIG_ESP_MATTER_COMMISSIONER_ENABLE)
+    chip::FabricIndex fabric_index = get_fabric_index();
+#else
+    chip::FabricIndex fabric_index = matter_controller_client::get_instance().get_fabric_index();
+#endif
     if (CHIP_NO_ERROR !=
         InteractionModelEngine::GetInstance()->ShutdownSubscription(ScopedNodeId(node_id, fabric_index),
                                                                     subscription_id)) {
@@ -315,17 +299,11 @@ esp_err_t send_shutdown_subscription(uint64_t node_id, uint32_t subscription_id)
 
 void send_shutdown_subscriptions(uint64_t node_id)
 {
-    chip::FabricIndex fabric_index;
-// #ifdef CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER
-    if (!commissioner_enabled)
-    {
-        fabric_index = get_fabric_index();
-    }
-// #else
-    else {
-        fabric_index = matter_controller_client::get_instance().get_fabric_index();
-    }
-// #endif
+#if defined(CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER) && !defined(CONFIG_ESP_MATTER_COMMISSIONER_ENABLE)
+    chip::FabricIndex fabric_index = get_fabric_index();
+#else
+    chip::FabricIndex fabric_index = matter_controller_client::get_instance().get_fabric_index();
+#endif
 
     InteractionModelEngine::GetInstance()->ShutdownSubscriptions(fabric_index, node_id);
     ESP_LOGI(TAG, "Shutdown Subscriptions for node:0x%llx", node_id);

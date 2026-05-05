@@ -19,12 +19,12 @@ if (CONFIG_ESP_MATTER_CONTROLLER_ENABLE)
                                   "${MATTER_SDK_PATH}/examples/chip-tool/"
                                   "${CMAKE_CURRENT_SOURCE_DIR}/data_model_provider")
 
-    # if (CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER)
-    #     list(APPEND exclude_srcs_list "${CMAKE_CURRENT_SOURCE_DIR}/core/esp_matter_controller_client.cpp"
-    #                                   "${CMAKE_CURRENT_SOURCE_DIR}/core/esp_matter_controller_credentials_issuer.cpp"
-    #                                   "${CMAKE_CURRENT_SOURCE_DIR}/core/esp_matter_controller_group_settings.cpp"
-    #                                   "${CMAKE_CURRENT_SOURCE_DIR}/core/esp_matter_controller_icd_client.cpp")
-    # endif()
+    if (CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER AND NOT CONFIG_ESP_MATTER_COMMISSIONER_ENABLE)
+        list(APPEND exclude_srcs_list "${CMAKE_CURRENT_SOURCE_DIR}/core/esp_matter_controller_client.cpp"
+                                      "${CMAKE_CURRENT_SOURCE_DIR}/core/esp_matter_controller_credentials_issuer.cpp"
+                                      "${CMAKE_CURRENT_SOURCE_DIR}/core/esp_matter_controller_group_settings.cpp"
+                                      "${CMAKE_CURRENT_SOURCE_DIR}/core/esp_matter_controller_icd_client.cpp")
+    endif()
 
     if (CONFIG_ESP_MATTER_COMMISSIONER_ENABLE)
         list(APPEND src_dirs_list "${CMAKE_CURRENT_SOURCE_DIR}/attestation_store")

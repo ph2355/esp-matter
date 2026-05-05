@@ -19,8 +19,9 @@
 #include <esp_matter_controller_client.h>
 #include <esp_matter_controller_credentials_issuer.h>
 #include <esp_matter_controller_pairing_command.h>
+#include "esp_matter_data_model_provider.h"
 
-#if CHIP_DEVICE_CONFIG_ENABLE_BOTH_COMMISSIONER_AND_COMMISSIONEE
+#if defined(CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER) && defined(CONFIG_ESP_MATTER_COMMISSIONER_ENABLE)
 #include <app/server/Server.h>
 #endif
 
@@ -39,8 +40,6 @@
 #include <lib/support/Span.h>
 #include <lib/support/TestGroupData.h>
 #include <stdint.h>
-
-#include "esp_matter_data_model_provider.h"
 
 #ifdef CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
 #include <esp_matter_attestation_trust_store.h>
@@ -70,8 +69,7 @@ ESPCommissionerCallback commissioner_callback;
 esp_err_t matter_controller_client::init(NodeId node_id, FabricId fabric_id, uint16_t listen_port)
 {
     chip::Controller::FactoryInitParams factory_init_params;
-
-#if CHIP_DEVICE_CONFIG_ENABLE_BOTH_COMMISSIONER_AND_COMMISSIONEE
+#if defined(CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER) && defined(CONFIG_ESP_MATTER_COMMISSIONER_ENABLE)
     // Combined commissioner+commissionee mode:
     // - Share the server's fabric table so the server's CASEServer can authenticate switches
     //   commissioned onto the commissioner's fabric (FindLocalNodeFromDestinationId iterates it).
@@ -104,12 +102,12 @@ esp_err_t matter_controller_client::init(NodeId node_id, FabricId fabric_id, uin
     factory_init_params.groupDataProvider =
         reinterpret_cast<chip::Credentials::GroupDataProvider *>(&m_group_data_provider);
     chip::Credentials::SetGroupDataProvider(factory_init_params.groupDataProvider);
-#endif // CHIP_DEVICE_CONFIG_ENABLE_BOTH_COMMISSIONER_AND_COMMISSIONEE
+#endif // CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER && CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
 
     factory_init_params.listenPort = listen_port;
     factory_init_params.fabricIndependentStorage = &m_default_storage;
     factory_init_params.sessionKeystore = &m_session_key_store;
-#if CHIP_DEVICE_CONFIG_ENABLE_BOTH_COMMISSIONER_AND_COMMISSIONEE
+#if defined(CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER) && defined(CONFIG_ESP_MATTER_COMMISSIONER_ENABLE)
     // In combined mode, switches connect to port 5540 (server) so the factory does not need its
     // own CASEServer. Disable server interactions to skip creating a second CASEServer on port 5580.
     // InitSystemState still calls InteractionModelEngine::SetDataModelProvider unconditionally, so
@@ -127,10 +125,8 @@ esp_err_t matter_controller_client::init(NodeId node_id, FabricId fabric_id, uin
     ESP_RETURN_ON_FALSE(chip::Controller::DeviceControllerFactory::GetInstance().Init(factory_init_params) ==
                             CHIP_NO_ERROR,
                         ESP_FAIL, TAG, "Failed to initialize DeviceControllerFactory");
-    
     auto *system_state = chip::Controller::DeviceControllerFactory::GetInstance().GetSystemState();
     m_group_data_provider_listener.Init(system_state);
-    
     auto engine = chip::app::InteractionModelEngine::GetInstance();
     ESP_RETURN_ON_FALSE(engine, ESP_ERR_INVALID_STATE, TAG, "No interaction model engine");
     ESP_RETURN_ON_FALSE(m_icd_check_in_delegate.Init(&m_icd_client_storage, engine) == CHIP_NO_ERROR, ESP_FAIL, TAG,
@@ -219,12 +215,9 @@ esp_err_t matter_controller_client::setup_commissioner()
     chip::Credentials::GroupDataProvider *group_data_provider =
         chip::Controller::DeviceControllerFactory::GetInstance().GetSystemState()->GetGroupDataProvider();
     chip::ByteSpan default_ipk = chip::GroupTesting::DefaultIpkValue::GetDefaultIpk();
-    {
-        CHIP_ERROR ipk_err = chip::Credentials::SetSingleIpkEpochKey(group_data_provider, fabric_index, default_ipk,
-                                                                     compressed_fabric_id_span);
-        ESP_RETURN_ON_FALSE(ipk_err == CHIP_NO_ERROR, ESP_FAIL, TAG,
-                            "Failed to set ipk for commissioner fabric: %" CHIP_ERROR_FORMAT, ipk_err.Format());
-    }
+    ESP_RETURN_ON_FALSE(chip::Credentials::SetSingleIpkEpochKey(group_data_provider, fabric_index, default_ipk,
+                                                                compressed_fabric_id_span) == CHIP_NO_ERROR,
+                        ESP_FAIL, TAG, "Failed to set ipk for commissioner fabric");
 
 #if CHIP_DEVICE_CONFIG_ENABLE_COMMISSIONER_DISCOVERY
     get_discovery_controller()->SetUserDirectedCommissioningServer(

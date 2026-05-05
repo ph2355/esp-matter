@@ -31,9 +31,6 @@ using chip::app::ReadPrepareParams;
 
 static const char *TAG = "read_command";
 
-#include "globals.h"
-extern bool commissioner_enabled;
-
 namespace esp_matter {
 namespace controller {
 
@@ -60,16 +57,12 @@ void read_command::on_device_connection_failure_fcn(void *context, const ScopedN
 
 esp_err_t read_command::send_command()
 {
-// #ifdef CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER
-    if (!commissioner_enabled)
-    {
-        chip::Server &server = chip::Server::GetInstance();
-        server.GetCASESessionManager()->FindOrEstablishSession(ScopedNodeId(m_node_id, get_fabric_index()),
-        &on_device_connected_cb, &on_device_connection_failure_cb);
-        return ESP_OK;
-    }
-// #else
-    else {
+#if defined(CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER) && !defined(CONFIG_ESP_MATTER_COMMISSIONER_ENABLE)
+    chip::Server &server = chip::Server::GetInstance();
+    server.GetCASESessionManager()->FindOrEstablishSession(ScopedNodeId(m_node_id, get_fabric_index()),
+                                                           &on_device_connected_cb, &on_device_connection_failure_cb);
+    return ESP_OK;
+#else
     auto &controller_instance = esp_matter::controller::matter_controller_client::get_instance();
 #ifdef CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
     if (CHIP_NO_ERROR ==
@@ -83,9 +76,8 @@ esp_err_t read_command::send_command()
                                                                  &on_device_connection_failure_cb)) {
         return ESP_OK;
     }
-    #endif // CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
-    // #endif // CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER
-}
+#endif // CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
+#endif // CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER && !CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
 
     chip::Platform::Delete(this);
     return ESP_FAIL;

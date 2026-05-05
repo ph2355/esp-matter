@@ -32,9 +32,6 @@ using namespace chip::app::Clusters;
 
 #define TAG "controller"
 
-#include "globals.h"
-extern bool commissioner_enabled;
-
 namespace esp_matter {
 namespace controller {
 
@@ -51,17 +48,12 @@ esp_err_t commissioning_window_opener::send_open_commissioning_window_command(ui
     m_iteration = iteration;
     m_discriminator = discriminator;
     m_timed_invoke_timeout_ms = timed_invoke_timeout_ms;
-    if (!commissioner_enabled)
-    {
-// #ifdef CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER
+#if defined(CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER) && !defined(CONFIG_ESP_MATTER_COMMISSIONER_ENABLE)
     chip::Server &server = chip::Server::GetInstance();
     server.GetCASESessionManager()->FindOrEstablishSession(ScopedNodeId(node_id, get_fabric_index()),
                                                            &on_device_connected_cb, &on_device_connection_failure_cb);
     return ESP_OK;
-    }
-// #else
-    else
-    {
+#else
     auto &controller_instance = esp_matter::controller::matter_controller_client::get_instance();
 #ifdef CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
     if (CHIP_NO_ERROR ==
@@ -75,9 +67,8 @@ esp_err_t commissioning_window_opener::send_open_commissioning_window_command(ui
                                                                  &on_device_connection_failure_cb)) {
         return ESP_OK;
     }
-    #endif // CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
-    // #endif // CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER
-}
+#endif // CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
+#endif // CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER && !CONFIG_ESP_MATTER_COMMISSIONER_ENABLE
     return ESP_OK;
 }
 static esp_err_t generate_pase_verifier(uint32_t iteration, uint32_t &pincode, chip::MutableByteSpan &salt,

@@ -49,7 +49,6 @@
 namespace esp_matter {
 namespace controller {
 
-// #ifndef CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER
 typedef void (*remove_fabric_callback)(chip::NodeId remoteNodeId, CHIP_ERROR status);
 
 class auto_fabric_remover : private chip::Controller::CurrentFabricRemover {
@@ -240,7 +239,6 @@ private:
     MatterDeviceController m_device_controller;
 #endif
 };
-// #endif // CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER
 
 #if CHIP_DEVICE_CONFIG_ENABLE_COMMISSIONER_DISCOVERY
 class ESPCommissionerCallback : public CommissionerCallback {

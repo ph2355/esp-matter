@@ -122,3 +122,4 @@ matter esp controller pairing onnetwork <node_id> 20202021
 - Factory reset the controller (`matter esp factoryreset`) if you hit IPK errors after flashing — stale NVS keyset data from previous runs can fill the 3-slot limit.
 - The ACL entry added by `commissioner_setup` is append-only. If you run `commissioner_setup` multiple times without a factory reset, duplicate entries accumulate in NVS (harmless but wasteful).
 - The binding JSON written to the switch uses esp-matter's json_to_tlv key format (`"<tag>:<type>"`), not human-readable field names.
+- The binary file is larger than the default 2MB which is reserved for each ota partition. So the partitions.csv were adjusted accordingly.

@@ -48,7 +48,7 @@
 #endif
 namespace esp_matter {
 namespace controller {
-
+// patched to allow both commissioner + server simultaneosly. Include unconditionally. This may be refined to be included only in certain cases - TODO.
 typedef void (*remove_fabric_callback)(chip::NodeId remoteNodeId, CHIP_ERROR status);
 
 class auto_fabric_remover : private chip::Controller::CurrentFabricRemover {
@@ -252,6 +252,7 @@ class ESPCommissionerCallback : public CommissionerCallback {
         do {
             chip::Crypto::DRBG_get_bytes(reinterpret_cast<uint8_t *>(&gRemoteId), sizeof(gRemoteId));
         } while (!chip::IsOperationalNodeId(gRemoteId));
+    // patched to allow both commissioner + server simultaneosly. Added namespace because multiple definitions were found after applying commissioner + server changes.
         esp_matter::controller::matter_controller_client::get_instance().get_commissioner()->PairDevice(gRemoteId, params);
     }
 };

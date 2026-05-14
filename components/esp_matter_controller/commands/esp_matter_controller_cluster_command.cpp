@@ -202,6 +202,7 @@ esp_err_t cluster_command::dispatch_group_command(void *context)
     esp_err_t err = ESP_OK;
     cluster_command *cmd = reinterpret_cast<cluster_command *>(context);
     uint16_t group_id = cmd->m_destination_id & 0xFFFF;
+// patched to allow both commissioner + server simultaneosly. Previosly ENABLE_MATTER_SERVER and MATTER_COMMISSIONER were mutually exclusive. 
 #if defined(CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER) && !defined(CONFIG_ESP_MATTER_COMMISSIONER_ENABLE)
     uint8_t fabric_index = get_fabric_index();
 #else
@@ -219,6 +220,7 @@ esp_err_t cluster_command::send_command()
     if (is_group_command()) {
         return dispatch_group_command(reinterpret_cast<void *>(this));
     }
+// patched to allow both commissioner + server simultaneosly. Previosly ENABLE_MATTER_SERVER and MATTER_COMMISSIONER were mutually exclusive. 
 #if defined(CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER) && !defined(CONFIG_ESP_MATTER_COMMISSIONER_ENABLE)
     chip::Server &server = chip::Server::GetInstance();
     server.GetCASESessionManager()->FindOrEstablishSession(ScopedNodeId(m_destination_id, get_fabric_index()),

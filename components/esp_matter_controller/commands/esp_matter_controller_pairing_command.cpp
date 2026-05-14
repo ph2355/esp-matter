@@ -118,6 +118,7 @@ void pairing_command::OnDiscoveredDevice(const Dnssd::CommissionNodeData &nodeDa
 
     Inet::InterfaceId interfaceId =
         nodeData.ipAddress[0].IsIPv6LinkLocal() ? nodeData.interfaceId : Inet::InterfaceId::Null();
+    // patched to allow both commissioner + server simultaneosly. Without this namespace PeerAddress has two definitions (don't know why it worked before or why it stopped working).
     Transport::PeerAddress peerAddress = Transport::PeerAddress::UDP(nodeData.ipAddress[0], port, interfaceId);
     RendezvousParameters params = RendezvousParameters().SetSetupPINCode(m_setup_pincode).SetPeerAddress(peerAddress);
     CommissioningParameters commissioning_params = CommissioningParameters();

@@ -19,6 +19,7 @@ if (CONFIG_ESP_MATTER_CONTROLLER_ENABLE)
                                   "${MATTER_SDK_PATH}/examples/chip-tool/"
                                   "${CMAKE_CURRENT_SOURCE_DIR}/data_model_provider")
 
+    // patched to allow both commissioner + server simultaneosly. Previosly ENABLE_MATTER_SERVER and MATTER_COMMISSIONER were mutually exclusive. 
     if (CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER AND NOT CONFIG_ESP_MATTER_COMMISSIONER_ENABLE)
         list(APPEND exclude_srcs_list "${CMAKE_CURRENT_SOURCE_DIR}/core/esp_matter_controller_client.cpp"
                                       "${CMAKE_CURRENT_SOURCE_DIR}/core/esp_matter_controller_credentials_issuer.cpp"

@@ -57,6 +57,7 @@ void read_command::on_device_connection_failure_fcn(void *context, const ScopedN
 
 esp_err_t read_command::send_command()
 {
+// patched to allow both commissioner + server simultaneosly. Previosly ENABLE_MATTER_SERVER and MATTER_COMMISSIONER were mutually exclusive. 
 #if defined(CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER) && !defined(CONFIG_ESP_MATTER_COMMISSIONER_ENABLE)
     chip::Server &server = chip::Server::GetInstance();
     server.GetCASESessionManager()->FindOrEstablishSession(ScopedNodeId(m_node_id, get_fabric_index()),

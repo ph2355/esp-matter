@@ -19,8 +19,11 @@
 #include <esp_matter_controller_client.h>
 #include <esp_matter_controller_credentials_issuer.h>
 #include <esp_matter_controller_pairing_command.h>
+
+// patched to allow both commissioner + server simultaneosly. Include data model from server so that it can be shared with commissioner.
 #include "esp_matter_data_model_provider.h"
 
+// patched to allow both commissioner + server simultaneosly. Include server to share its resources with commissioner.
 #if defined(CONFIG_ESP_MATTER_ENABLE_MATTER_SERVER) && defined(CONFIG_ESP_MATTER_COMMISSIONER_ENABLE)
 #include <app/server/Server.h>
 #endif
